@@ -6,29 +6,6 @@ using System.Collections.Generic;
 
 namespace pi_dotnetcore
 {
-    public enum PinDirection { In, Out }
-
-    public class GpioPin
-    {
-        public GpioPin(int number)
-        {
-            Number = number;
-            Direction = null;
-            Value = null;
-        }
-
-        public int Number { get; private set; }
-
-        public PinDirection? Direction { get; set; }
-
-        public int? Value { get; set; }
-
-        public override string ToString()
-        {
-            return string.Format("gpio{0}|{1}|{2}", Number, (Direction == null) ? "?" : Direction.ToString(), (Value == null) ? "?" : Value.ToString());
-        }
-    }
-
     public class Gpio
     {
         int[] _numbers;
@@ -62,11 +39,11 @@ namespace pi_dotnetcore
                     switch (File.ReadAllText(string.Format("{0}/direction", folder)))
                     {
                         case "in":
-                            pin.Direction = PinDirection.In;
+                            pin.Direction = GpioDirection.In;
                             break;
 
                         case "out":
-                            pin.Direction = PinDirection.Out;
+                            pin.Direction = GpioDirection.Out;
                             break;
                     }
                 }
@@ -74,7 +51,7 @@ namespace pi_dotnetcore
 
             return pin;
         }
-        public void Set(int pin, PinDirection direction, bool on)
+        public void Set(int pin, GpioDirection direction, bool on)
         {
             if (!(_numbers).Contains(pin))
             {
