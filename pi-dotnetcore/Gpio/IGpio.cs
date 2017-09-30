@@ -6,8 +6,10 @@ namespace pi_dotnetcore.Gpio
 {
     public interface IGpio
     {
-        IEnumerable<int> ListPinNumbers();
+        void InitPin(int number, bool isOutput);
+        void DeInitPin(int number);
         IPin GetPin(int number);
-        bool SetPin(int number, bool output, bool on);
+        IEnumerable<IPin> GetInitializedPins();
+        void SetPin(int number, bool isOn);
     }
 }

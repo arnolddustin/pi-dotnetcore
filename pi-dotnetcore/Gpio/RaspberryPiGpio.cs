@@ -8,50 +8,58 @@ namespace pi_dotnetcore.Gpio
 {
     public class RaspberryPiGpio : IGpio
     {
-        int[] _pins = new int[] { 2, 3, 4, 17, 27, 22, 10, 9, 11, 0, 5, 6, 13, 19, 26, 14, 15, 18, 23, 24, 25, 8, 7, 1, 12, 16, 20, 21 };
+        const int MIN_GPIO_PIN = 0;
+        const int MAX_GPIO_PIN = 27;
+
+        public IEnumerable<IPin> GetInitializedPins()
+        {
+            for (int i = MIN_GPIO_PIN; i <= MAX_GPIO_PIN; i++)
+            {
+                if (Directory.Exists(GetPinFolder(i)))
+                    yield return GetPin(i);
+            }
+        }
+
+        public void InitPin(int number, bool isOutput)
+        {
+            if (!Directory.Exists(GetPinFolder(number)))
+                File.WriteAllText("/sys/class/gpio/export", number.ToString());
+
+            File.WriteAllText(string.Format("{0}/direction", GetPinFolder(number)), (isOutput) ? "out" : "in");
+        }
+
+        public void DeInitPin(int number)
+        {
+            if (Directory.Exists(GetPinFolder(number)))
+                File.WriteAllText("/sys/class/gpio/unexport", number.ToString());
+        }
 
         public IPin GetPin(int number)
         {
-            if (!_pins.Contains(number))
-                throw new ArgumentOutOfRangeException("number");
+            if (!Directory.Exists(GetPinFolder(number)))
+                throw new ApplicationException(string.Format("Pin number {0} must be initialized before use.", number));
 
-            bool isoutput = false;
-            bool ison = false;
-
-            var folder = string.Format("/sys/class/gpio/gpio{0}", number);
-            if (Directory.Exists(folder))
-            {
-                var directionfile = string.Format("{0}/direction", folder);
-                if (File.Exists(directionfile))
-                    isoutput = File.ReadAllText(directionfile).Trim().Equals("out");
-
-                var valuefile = string.Format("{0}/value", folder);
-                if (File.Exists(valuefile))
-                    ison = File.ReadAllText(valuefile).Trim().Equals("1");
-            }
-
-            return new Pin(number, isoutput, ison);
+            return new Pin(
+                number,
+                File.ReadAllText(string.Format("{0}/direction", GetPinFolder(number))).Trim().Equals("out"),
+                File.ReadAllText(string.Format("{0}/value", GetPinFolder(number))).Trim().Equals("1")
+            );
         }
 
-        public IEnumerable<int> ListPinNumbers()
+        public void SetPin(int number, bool on)
         {
-            return _pins;
+            if (!Directory.Exists(GetPinFolder(number)))
+                throw new ApplicationException(string.Format("Pin number {0} must be initialized before use.", number));
+
+            File.WriteAllText(string.Format("{0}/value", GetPinFolder(number)), (on) ? "1" : "0");
         }
 
-        public bool SetPin(int number, bool output, bool on)
+        string GetPinFolder(int number)
         {
-            if (!_pins.Contains(number))
-                throw new ArgumentOutOfRangeException("number");
+            if (number < MIN_GPIO_PIN || number > MAX_GPIO_PIN)
+                throw new ArgumentOutOfRangeException("number", number, string.Format("number must be between {0} and {1}.", MIN_GPIO_PIN, MAX_GPIO_PIN));
 
-            var pinFolder = string.Format("/sys/class/gpio/gpio{0}", number);
-
-            if (!Directory.Exists(pinFolder))
-                File.WriteAllText("/sys/class/gpio/export", number.ToString());
-
-            File.WriteAllText(string.Format("{0}/direction", pinFolder), (output) ? "out" : "in");
-            File.WriteAllText(string.Format("{0}/value", pinFolder), (on) ? "1" : "0");
-
-            return true;
+            return string.Format("/sys/class/gpio/gpio{0}", number);
         }
     }
 }
