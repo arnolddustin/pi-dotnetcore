@@ -1,14 +1,14 @@
 #  pi-dotnetcore
 A library for .NET Core applications and services for the RaspberryPi.
 
-Current features include a dependency-injectable adapter for working with the RaspberryPi's (GPIO pins)[https://www.raspberrypi.org/documentation/hardware/raspberrypi/gpio/README.md].
+Current features include a dependency-injectable adapter for working with the RaspberryPi's [GPIO pins](https://www.raspberrypi.org/documentation/hardware/raspberrypi/gpio/README.md).
 
 # Getting Started Guide
 Getting started from scratch with a new, out-of-the-box RaspberryPi.
 
 ### Part 1: Prepare the RaspberryPi
 1. If your RaspberryPi came with a pre-installed microSD card, skip ahead to step 3.
-2. Download and install the RaspberryPi operating system software (NOOBS) on a microSD card. (Full instructions)[https://www.raspberrypi.org/downloads/noobs/]
+2. Download and install the RaspberryPi operating system software (NOOBS) on a microSD card. [Full instructions can be found here](https://www.raspberrypi.org/downloads/noobs/).
 3. Boot up your RaspberryPi
 4. During initial bootup, configure the wifi settings for the device.
 5. From the NOOBS screen, install Raspbian Stretch Lite
