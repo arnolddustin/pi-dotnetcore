@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace pi_dotnetcore
 {
-    public class Gpio
+    public class Gpio : IGpio
     {
         int[] _numbers;
 
@@ -51,25 +51,29 @@ namespace pi_dotnetcore
 
             return pin;
         }
-        public void Set(int pin, GpioDirection direction, bool on)
+        public GpioPin Set(int number, GpioDirection direction, bool on)
         {
-            if (!(_numbers).Contains(pin))
+            if (!(_numbers).Contains(number))
             {
                 throw new ArgumentOutOfRangeException("Invalid pin.");
             }
 
-            var pinFolder = string.Format("gpio{0}", pin);
+            var pin = new GpioPin(number);
+            pin.Direction = direction;
+            pin.Value = (on) ? 1 : 0;
+
+            var pinFolder = string.Format("gpio{0}", number);
 
             // make sure pin is open
             if (!Directory.Exists("/sys/class/gpio/" + pinFolder))
             {
-                File.WriteAllText("/sys/class/gpio/export", pin.ToString());
+                File.WriteAllText("/sys/class/gpio/export", pin.Number.ToString());
             }
 
-            // configure pin for output
-            File.WriteAllText("/sys/class/gpio/" + pinFolder + "/direction", "out");
+            File.WriteAllText("/sys/class/gpio/" + pinFolder + "/direction", (direction == GpioDirection.Out) ? "out" : "in");
+            File.WriteAllText("/sys/class/gpio/" + pinFolder + "/value", pin.Value.ToString());
 
-            File.WriteAllText("/sys/class/gpio/" + pinFolder + "/value", (on ? 1 : 0).ToString());
+            return pin;
         }
     }
 }
