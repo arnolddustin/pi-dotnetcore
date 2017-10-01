@@ -51,6 +51,9 @@ namespace pi_dotnetcore.Gpio
             if (!Directory.Exists(GetPinFolder(number)))
                 throw new ApplicationException(string.Format("Pin number {0} must be initialized before use.", number));
 
+            if (File.ReadAllText(string.Format("{0}/direction", GetPinFolder(number))).Trim().Equals("in"))
+                throw new ApplicationException(string.Format("Pin number {0} is an input pin. It cannot be set."));
+
             File.WriteAllText(string.Format("{0}/value", GetPinFolder(number)), (on) ? "1" : "0");
         }
 
