@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace pi_dotnetcore.Gpio
 {
-    public interface IGpio
+    public interface IGpioAdapter
     {
         void InitPin(int number, bool isOutput);
         void DeInitPin(int number);
