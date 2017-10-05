@@ -1,9 +1,13 @@
 namespace pi_dotnetcore.Gpio
 {
+    public enum PinDirection { Input, Output }
+
+    public enum PinValue { On, Off }
+
     public interface IPin
     {
-        int number { get; }
-        bool output { get; }
-        bool on { get; }
+        int Number { get; }
+        PinDirection Direction { get; }
+        PinValue Value { get; }
     }
 }

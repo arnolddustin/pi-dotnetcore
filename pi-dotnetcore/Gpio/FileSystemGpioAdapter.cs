@@ -8,77 +8,53 @@ namespace pi_dotnetcore.Gpio
 {
     public class FileSystemGpioAdapter : IGpioAdapter
     {
-        class Pin : IPin
-        {
-            public Pin(int pinNumber, bool isOutput, bool isOn)
-            {
-                this.number = pinNumber;
-                this.output = isOutput;
-                this.on = isOn;
-            }
-            public int number { get; private set; }
-            public bool output { get; private set; }
-            public bool on { get; private set; }
+        Dictionary<int, Stream> _valueStreams;
 
-            public override string ToString()
-            {
-                return string.Format("{0} {1} {2}", number, output, on);
-            }
+        public FileSystemGpioAdapter()
+        {
+            _valueStreams = new Dictionary<int, Stream>();
         }
 
-        const int MIN_GPIO_PIN = 0;
-        const int MAX_GPIO_PIN = 27;
-
-        public IEnumerable<IPin> GetInitializedPins()
+        public void InitPin(int number)
         {
-            for (int i = MIN_GPIO_PIN; i <= MAX_GPIO_PIN; i++)
-            {
-                if (Directory.Exists(GetPinFolder(i)))
-                    yield return GetPin(i);
-            }
-        }
+            File.WriteAllText("/sys/class/gpio/export", number.ToString());
 
-        public void InitPin(int number, bool isOutput)
-        {
-            if (!Directory.Exists(GetPinFolder(number)))
-                File.WriteAllText("/sys/class/gpio/export", number.ToString());
-
-            File.WriteAllText(string.Format("{0}/direction", GetPinFolder(number)), (isOutput) ? "out" : "in");
+            if (!_valueStreams.ContainsKey(number))
+                _valueStreams.Add(number, new FileStream(Path.Combine(GetPinFolder(number), "value"), FileMode.Open));
         }
 
         public void DeInitPin(int number)
         {
-            if (Directory.Exists(GetPinFolder(number)))
-                File.WriteAllText("/sys/class/gpio/unexport", number.ToString());
+            File.WriteAllText("/sys/class/gpio/unexport", number.ToString());
+
+            _valueStreams.Remove(number);
         }
 
-        public IPin GetPin(int number)
+        public PinDirection GetDirection(int number)
         {
-            if (!Directory.Exists(GetPinFolder(number)))
-                throw new ApplicationException(string.Format("Pin number {0} must be initialized before use.", number));
-
-            return new Pin(
-                number,
-                File.ReadAllText(string.Format("{0}/direction", GetPinFolder(number))).Trim().Equals("out"),
-                File.ReadAllText(string.Format("{0}/value", GetPinFolder(number))).Trim().Equals("1")
-            );
+            return new FileStream(Path.Combine(GetPinFolder(number), "direction"), FileMode.Open).ReadByte() == (byte)'o' ? PinDirection.Output : PinDirection.Input;
         }
 
-        public void SetPin(int number, bool on)
+        public PinValue GetValue(int number)
         {
-            if (!Directory.Exists(GetPinFolder(number)))
-                throw new ApplicationException(string.Format("Pin number {0} must be initialized before use.", number));
-
-            if (File.ReadAllText(string.Format("{0}/direction", GetPinFolder(number))).Trim().Equals("in"))
-                throw new ApplicationException(string.Format("Pin number {0} is an input pin. It cannot be set."));
-
-            File.WriteAllText(string.Format("{0}/value", GetPinFolder(number)), (on) ? "1" : "0");
+            _valueStreams[number].Seek(0, SeekOrigin.Begin);
+            return _valueStreams[number].ReadByte() == (byte)'1' ? PinValue.On : PinValue.Off;
         }
 
-        string GetPinFolder(int number)
+        public void SetDirection(int number, PinDirection direction)
         {
-            if (number < MIN_GPIO_PIN || number > MAX_GPIO_PIN)
-                throw new ArgumentOutOfRangeException("number", number, string.Format("number must be between {0} and {1}.", MIN_GPIO_PIN, MAX_GPIO_PIN));
+            File.WriteAllText(Path.Combine(GetPinFolder(number), "direction"), direction == PinDirection.Input ? "in" : "out");
+        }
+
+        public void SetValue(int number, PinValue value)
+        {
+            File.WriteAllText(Path.Combine(GetPinFolder(number), "value"), value == PinValue.On ? "1" : "0");
+        }
+
+        static string GetPinFolder(int number)
+        {
+            if (number < 0 || number > 27)
+                throw new ArgumentOutOfRangeException("number", number, "pin number must be between 0 and 27");
 
             return string.Format("/sys/class/gpio/gpio{0}", number);
         }
