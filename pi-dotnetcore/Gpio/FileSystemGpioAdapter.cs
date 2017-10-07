@@ -25,9 +25,18 @@ namespace pi_dotnetcore.Gpio
 
         public void DeInitPin(int number)
         {
-            File.WriteAllText("/sys/class/gpio/unexport", number.ToString());
+            try
+            {
+                File.WriteAllText("/sys/class/gpio/unexport", number.ToString());
+            }
+            catch (IOException ex)
+            {
+                if (!ex.Message.Equals("Invalid argument"))
+                    throw ex;
+            }
 
-            _valueStreams.Remove(number);
+            if (_valueStreams.ContainsKey(number))
+                _valueStreams.Remove(number);
         }
 
         public PinDirection GetDirection(int number)
