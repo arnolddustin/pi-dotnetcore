@@ -17,7 +17,16 @@ namespace pi_dotnetcore.Gpio
 
         public void InitPin(int number)
         {
-            File.WriteAllText("/sys/class/gpio/export", number.ToString());
+            try
+            {
+                File.WriteAllText("/sys/class/gpio/export", number.ToString());
+            }
+            catch (IOException ex)
+            {
+                if (!ex.Message.Equals("Invalid argument"))
+                    throw ex;
+            }
+
 
             if (!_valueStreams.ContainsKey(number))
                 _valueStreams.Add(number, new FileStream(Path.Combine(GetPinFolder(number), "value"), FileMode.Open));
