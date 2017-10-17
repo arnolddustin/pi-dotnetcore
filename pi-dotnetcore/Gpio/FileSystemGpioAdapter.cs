@@ -3,33 +3,32 @@ using System.IO;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace pi_dotnetcore.Gpio
 {
+    /// <summary>
+    /// Implementation of IGpioAdapter that uses the RaspberryPi file system
+    /// </summary>
     public class FileSystemGpioAdapter : IGpioAdapter
     {
-        Dictionary<int, Stream> _valueStreams;
+        Dictionary<int, FileStream> _valuestreams;
 
         public FileSystemGpioAdapter()
         {
-            _valueStreams = new Dictionary<int, Stream>();
+            _valuestreams = new Dictionary<int, FileStream>();
         }
+
+        #region IGpioAdapter Interface 
 
         public void InitPin(int number)
         {
-            try
+            if (!File.Exists(GetPinFolder(number)))
             {
                 File.WriteAllText("/sys/class/gpio/export", number.ToString());
+                if (!_valuestreams.ContainsKey(number))
+                    _valuestreams.Add(number, new FileStream(Path.Combine(GetPinFolder(number), "value"), FileMode.Open));
             }
-            catch (IOException ex)
-            {
-                if (!ex.Message.Equals("Invalid argument"))
-                    throw ex;
-            }
-
-
-            if (!_valueStreams.ContainsKey(number))
-                _valueStreams.Add(number, new FileStream(Path.Combine(GetPinFolder(number), "value"), FileMode.Open));
         }
 
         public void DeInitPin(int number)
@@ -38,25 +37,25 @@ namespace pi_dotnetcore.Gpio
             {
                 File.WriteAllText("/sys/class/gpio/unexport", number.ToString());
             }
-            catch (IOException ex)
-            {
-                if (!ex.Message.Equals("Invalid argument"))
-                    throw ex;
-            }
+            catch (IOException) { }
 
-            if (_valueStreams.ContainsKey(number))
-                _valueStreams.Remove(number);
+            if (_valuestreams.ContainsKey(number))
+                _valuestreams.Remove(number);
+
         }
 
         public PinDirection GetDirection(int number)
         {
-            return new FileStream(Path.Combine(GetPinFolder(number), "direction"), FileMode.Open).ReadByte() == (byte)'o' ? PinDirection.Output : PinDirection.Input;
+            using (var fs = new FileStream(Path.Combine(GetPinFolder(number), "direction"), FileMode.Open))
+            {
+                return fs.ReadByte() == (byte)'o' ? PinDirection.Output : PinDirection.Input;
+            }
         }
 
         public PinValue GetValue(int number)
         {
-            _valueStreams[number].Seek(0, SeekOrigin.Begin);
-            return _valueStreams[number].ReadByte() == (byte)'1' ? PinValue.On : PinValue.Off;
+            _valuestreams[number].Position = 0;
+            return _valuestreams[number].ReadByte() == (byte)'1' ? PinValue.On : PinValue.Off;
         }
 
         public void SetDirection(int number, PinDirection direction)
@@ -68,6 +67,8 @@ namespace pi_dotnetcore.Gpio
         {
             File.WriteAllText(Path.Combine(GetPinFolder(number), "value"), value == PinValue.On ? "1" : "0");
         }
+
+        #endregion
 
         static string GetPinFolder(int number)
         {
