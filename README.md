@@ -24,6 +24,8 @@ Getting started from scratch with a new, out-of-the-box RaspberryPi.
 6. Navigate to `SSH`
 7. Enable ssh then exit the configuration tool
 
+* optional: [configure passwordless ssh access](https://www.raspberrypi.org/documentation/remote-access/ssh/passwordless.md)
+
 ### Part 3: Install .NET Core on the RaspberryPi
 1. Connect to the RaspberryPi via SSH: `ssh pi@raspberrypi` and enter your password
 2. Install prerequisite packages: `sudo apt-get install curl libunwind8 gettext`
